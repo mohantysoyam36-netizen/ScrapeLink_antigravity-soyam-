@@ -1,4 +1,4 @@
-﻿let currentBatches = [];
+let currentBatches = [];
 let activeVerifyingBatch = null;
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -8,7 +8,8 @@ document.addEventListener('DOMContentLoaded', () => {
 async function loadDashboardData() {
   await Promise.all([
     fetchMetrics(),
-    fetchBatches()
+    fetchBatches(),
+    fetchCollectors()
   ]);
 }
 
@@ -67,12 +68,19 @@ function renderBatchesTable(batches) {
       actionBtn = `<button class="btn btn-secondary btn-sm" onclick="viewPassport('${b.batch_id}')">View Certificate</button>`;
     }
 
+    const tier = (b.collector_tier || 'bronze').toLowerCase();
+    const rating = b.collector_rating ? Number(b.collector_rating).toFixed(1) : '4.5';
+
     return `
       <tr>
         <td><strong>${b.batch_id}</strong></td>
         <td>
-          <div>${b.collector_id}</div>
-          <small style="color:#64748b;">Formalized Kabadiwala</small>
+          <div><strong>${b.collector_name || b.collector_id}</strong></div>
+          <div style="margin-top:2px;">
+            <span class="star-rating">⭐ ${rating}</span>
+            <span class="badge badge-tier-${tier}">${tier.toUpperCase()}</span>
+          </div>
+          <small style="color:#64748b;">ID: ${b.collector_id}</small>
         </td>
         <td>
           <strong>${b.cpcb_category_code}</strong>
@@ -220,6 +228,8 @@ async function lookupPassport() {
         <div style="background:#f8fafc; padding:1rem; border-radius:8px;">
           <h4 style="margin-bottom:0.5rem; color:#1e7e34;">Informal Collection Stage</h4>
           <p><strong>Collector:</strong> ${b.collector_name || b.collector_id} (${b.collector_phone || 'N/A'})</p>
+          <p><strong>Reputation Rating:</strong> <span class="star-rating">⭐ ${(b.collector_rating || 4.5).toFixed(1)} / 5.0</span> <span class="badge badge-tier-${(b.collector_tier || 'bronze').toLowerCase()}">${(b.collector_tier || 'BRONZE').toUpperCase()}</span></p>
+          <p><strong>Incentive Status:</strong> ${b.collector_points ? b.collector_points + ' Points Accrued' : 'CPCB Scheme Eligible'}</p>
           <p><strong>Item Category:</strong> ${b.item_category} (${b.cpcb_category_code})</p>
           <p><strong>AI Confidence:</strong> ${(b.ai_confidence * 100).toFixed(0)}% (MobileNetV2)</p>
           <p><strong>Estimated Weight:</strong> ${b.estimated_weight_kg} Kg (${b.item_count} units)</p>
@@ -239,5 +249,69 @@ async function lookupPassport() {
     `;
   } catch (err) {
     console.error('Passport lookup failed:', err);
+  }
+}
+
+async function fetchCollectors() {
+  try {
+    const res = await fetch('/api/collectors');
+    const data = await res.json();
+    if (!data.success) return;
+
+    const tbody = document.getElementById('collectorsTableBody');
+    if (!tbody) return;
+
+    if (data.collectors.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" class="text-center" style="padding: 2rem; color: #64748b;">No registered collectors found.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = data.collectors.map(c => {
+      const tier = (c.incentive_tier || 'BRONZE').toUpperCase();
+      const tierClass = `badge-tier-${tier.toLowerCase()}`;
+      const tierIcon = tier === 'GOLD' ? '🥇' : (tier === 'SILVER' ? '🥈' : '🥉');
+      const roundedRating = Math.round(c.rating || 4.5);
+      const stars = '★'.repeat(Math.min(5, Math.max(1, roundedRating))) + '☆'.repeat(Math.max(0, 5 - roundedRating));
+
+      return `
+        <tr>
+          <td>
+            <div style="font-weight:600; font-size:0.95rem; color:#1e293b;">${c.full_name}</div>
+            <small style="color:#64748b;">ID: <code>${c.collector_id}</code></small>
+            ${c.is_kyc_verified ? '<span class="badge badge-verified" style="font-size:0.7rem; padding:1px 5px; margin-left:4px;">KYC Verified</span>' : ''}
+          </td>
+          <td>
+            <div>${c.operating_territory || 'Delhi NCR'}</div>
+            <small style="color:#64748b;">📞 ${c.phone_number}</small>
+          </td>
+          <td>
+            <div style="font-weight:bold; color:#d97706; font-size:1.05rem;">
+              ⭐ ${(c.rating || 4.5).toFixed(1)} <small style="color:#94a3b8;">/ 5.0</small>
+            </div>
+            <div style="color:#f59e0b; font-size:0.85rem; letter-spacing:1px;">${stars}</div>
+          </td>
+          <td>
+            <strong style="color:#0284c7; font-size:1.05rem;">${c.successful_handovers || c.handovers_count || 0}</strong>
+            <small style="color:#64748b;"> Handovers</small>
+          </td>
+          <td>
+            <strong>${(c.total_collected_kg || 0).toFixed(1)} Kg</strong>
+          </td>
+          <td>
+            <span class="badge ${tierClass}">${tierIcon} ${tier}</span>
+            <div style="font-size:0.9rem; font-weight:700; color:#16a34a; margin-top:3px;">
+              🎁 ${c.incentive_points || 0} Pts
+            </div>
+          </td>
+          <td>
+            <span class="badge badge-verified" style="font-size:0.75rem;">
+              ✅ Active • EPR Scheme Eligible
+            </span>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  } catch (err) {
+    console.error('Failed to load collectors:', err);
   }
 }

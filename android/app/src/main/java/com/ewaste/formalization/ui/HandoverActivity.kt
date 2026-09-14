@@ -1,4 +1,4 @@
-﻿package com.ewaste.formalization.ui
+package com.ewaste.formalization.ui
 
 import android.os.Bundle
 import android.widget.*
@@ -65,7 +65,11 @@ class HandoverActivity : AppCompatActivity() {
     private fun loadData() {
         lifecycleScope.launch(Dispatchers.IO) {
             // Load recyclers
-            val recyclers = database.recyclerDao().getAllRecyclers()
+            var recyclers = database.recyclerDao().getAllRecyclers()
+            if (recyclers.isEmpty()) {
+                EWasteDatabase.seedInitialData(database)
+                recyclers = database.recyclerDao().getAllRecyclers()
+            }
 
             // Load batch (if not passed, pick the latest COLLECTED batch)
             val batch = if (targetBatchId != null) {
@@ -127,13 +131,23 @@ class HandoverActivity : AppCompatActivity() {
             )
             database.handoverEventDao().insertEvent(event)
 
+            // Award Collector Rating Increment & Incentive Points
+            val pointsEarned = 50 + (batch.estimatedWeightKg * 10).toInt()
+            database.collectorDao().recordSuccessfulHandover(
+                collectorId = batch.collectorId,
+                ratingDelta = 0.1,
+                points = pointsEarned
+            )
+            val updatedCollector = database.collectorDao().getCollectorById(batch.collectorId)
+            val newRating = updatedCollector?.rating ?: 4.6
+
             // Trigger WorkManager sync to push Handed Over state to cloud
             SyncManager.triggerImmediateSync(applicationContext)
 
             withContext(Dispatchers.Main) {
                 Toast.makeText(
                     this@HandoverActivity,
-                    "माल सफलतापूर्वक ${recycler.companyName} को सौंपा गया!",
+                    "🎉 माल सफलतापूर्वक सौंपा गया!\nरेटिंग बढ़कर ${String.format(Locale.US, "%.1f", newRating)}★ हुई (+${pointsEarned} प्रोत्साहन अंक मिले)",
                     Toast.LENGTH_LONG
                 ).show()
                 finish()

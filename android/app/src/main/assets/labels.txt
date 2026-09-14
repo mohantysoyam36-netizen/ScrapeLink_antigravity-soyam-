@@ -1,4 +1,4 @@
-﻿mobile_phone
+mobile_phone
 laptop_computer
 pcb_circuit_board
 crt_lcd_monitor

@@ -1,4 +1,4 @@
-﻿package com.ewaste.formalization.data.local.entity
+package com.ewaste.formalization.data.local.entity
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
@@ -18,5 +18,9 @@ data class CollectorEntity(
     val registrationTimestamp: Long = System.currentTimeMillis(),
     val isKycVerified: Boolean = false,
     val totalCollectedKg: Double = 0.0,
-    val bankAccountOrUpiId: String? = null // For direct formal digital payouts
+    val bankAccountOrUpiId: String? = null, // For direct formal digital payouts
+    val rating: Double = 4.5, // Reputation rating (1.0 to 5.0)
+    val successfulHandovers: Int = 0, // Number of batches successfully handed over to recyclers
+    val incentivePoints: Int = 0, // Accrued incentive reward points
+    val incentiveTier: String = "BRONZE" // BRONZE, SILVER, GOLD
 )

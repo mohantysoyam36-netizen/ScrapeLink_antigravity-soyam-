@@ -1,4 +1,4 @@
-﻿const express = require('express');
+const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const crypto = require('crypto');
@@ -31,6 +31,74 @@ const CPCB_CATEGORIES = {
   CEEW_SHA: 'Small Household Electrical & Electronics'
 };
 
+// Helper: Award Reputation Rating and Incentive Points to Collector
+function awardCollectorIncentive(collectorId, batchId, eventType, weightKg = 1.0, ratingDelta = 0.1, basePoints = 50) {
+  try {
+    if (!collectorId) return null;
+
+    // Check if incentive for this batch & eventType was already awarded
+    const existingIncentive = db.prepare(
+      'SELECT incentive_id FROM collector_incentives WHERE collector_id = ? AND batch_id = ? AND event_type = ?'
+    ).get(collectorId, batchId, eventType);
+
+    if (existingIncentive) {
+      return null; // Already awarded
+    }
+
+    const collector = db.prepare('SELECT * FROM collectors WHERE collector_id = ?').get(collectorId);
+    if (!collector) return null;
+
+    // Calculate points: basePoints + 10 points per kg
+    const weightBonus = Math.round(weightKg * 10);
+    const pointsAwarded = basePoints + weightBonus;
+    const currentRating = collector.rating || 4.5;
+    const newRating = Math.min(5.0, parseFloat((currentRating + ratingDelta).toFixed(2)));
+    const newTotalPoints = (collector.incentive_points || 0) + pointsAwarded;
+    const newHandovers = (collector.successful_handovers || 0) + (eventType === 'HANDOVER_COMPLETED' ? 1 : 0);
+
+    // Determine tier
+    let newTier = 'BRONZE';
+    if (newTotalPoints >= 600) {
+      newTier = 'GOLD';
+    } else if (newTotalPoints >= 250) {
+      newTier = 'SILVER';
+    }
+
+    // Update collector stats
+    db.prepare(`
+      UPDATE collectors SET
+        rating = ?,
+        successful_handovers = ?,
+        incentive_points = ?,
+        incentive_tier = ?
+      WHERE collector_id = ?
+    `).run(newRating, newHandovers, newTotalPoints, newTier, collectorId);
+
+    // Record audit event in collector_incentives
+    const incentiveId = 'INC-' + crypto.randomBytes(4).toString('hex').toUpperCase();
+    const desc = eventType === 'HANDOVER_COMPLETED'
+      ? `Material successfully handed over to CPCB authorized recycler (${weightKg} kg)`
+      : `Recycler dock verification completed & EPR credit approved (${weightKg} kg)`;
+
+    db.prepare(`
+      INSERT INTO collector_incentives (
+        incentive_id, collector_id, batch_id, event_type, points_awarded, rating_increment, description, timestamp
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(incentiveId, collectorId, batchId, eventType, pointsAwarded, ratingDelta, desc, Date.now());
+
+    return {
+      incentiveId,
+      newRating,
+      newTotalPoints,
+      newTier,
+      pointsAwarded
+    };
+  } catch (err) {
+    console.error('Error awarding collector incentive:', err);
+    return null;
+  }
+}
+
 // 1. Ingest Synced Batches from Android WorkManager
 app.post('/api/sync/batches', (req, res) => {
   try {
@@ -42,7 +110,7 @@ app.post('/api/sync/batches', (req, res) => {
     const syncedBatchIds = [];
     const now = Date.now();
 
-    const findBatchStmt = db.prepare('SELECT handover_status FROM batches WHERE batch_id = ?');
+    const findBatchStmt = db.prepare('SELECT handover_status, collector_id FROM batches WHERE batch_id = ?');
     const insertBatchStmt = db.prepare(`
       INSERT INTO batches (
         batch_id, collector_id, item_category, cpcb_category_code, ai_confidence,
@@ -67,10 +135,12 @@ app.post('/api/sync/batches', (req, res) => {
 
     batches.forEach(b => {
       const existing = findBatchStmt.get(b.batchId);
+      const targetCollector = b.collectorId || collectorId || 'KAB-DL-2024-001';
+
       if (!existing) {
         insertBatchStmt.run(
           b.batchId,
-          b.collectorId || collectorId || 'KAB-DL-2024-001',
+          targetCollector,
           b.itemCategory,
           b.cpcbCategoryCode,
           b.aiConfidence || 0.9,
@@ -90,8 +160,12 @@ app.post('/api/sync/batches', (req, res) => {
           now
         );
         try {
-          updateCollectorWeightStmt.run(b.estimatedWeightKg || 1.0, b.collectorId || collectorId);
+          updateCollectorWeightStmt.run(b.estimatedWeightKg || 1.0, targetCollector);
         } catch (e) {}
+
+        if (b.handoverStatus === 'HANDED_OVER' || b.handoverStatus === 'VERIFIED_BY_RECYCLER') {
+          awardCollectorIncentive(targetCollector, b.batchId, 'HANDOVER_COMPLETED', b.estimatedWeightKg || 1.0, 0.1, 50);
+        }
       } else {
         const currentRank = STATUS_RANK[existing.handover_status] || 1;
         const incomingRank = STATUS_RANK[b.handoverStatus] || 1;
@@ -113,6 +187,11 @@ app.post('/api/sync/batches', (req, res) => {
           now,
           b.batchId
         );
+
+        if (existing.handover_status !== 'HANDED_OVER' && existing.handover_status !== 'VERIFIED_BY_RECYCLER' &&
+            (resolvedStatus === 'HANDED_OVER' || resolvedStatus === 'VERIFIED_BY_RECYCLER')) {
+          awardCollectorIncentive(existing.collector_id || targetCollector, b.batchId, 'HANDOVER_COMPLETED', b.estimatedWeightKg || 1.0, 0.1, 50);
+        }
       }
       syncedBatchIds.push(b.batchId);
     });
@@ -133,23 +212,29 @@ app.post('/api/sync/batches', (req, res) => {
 app.get('/api/batches', (req, res) => {
   try {
     const { status, collectorId, recyclerId } = req.query;
-    let query = 'SELECT * FROM batches WHERE 1=1';
+    let query = `
+      SELECT b.*, c.full_name as collector_name, c.rating as collector_rating,
+             c.incentive_tier as collector_tier, c.successful_handovers as collector_handovers
+      FROM batches b
+      LEFT JOIN collectors c ON b.collector_id = c.collector_id
+      WHERE 1=1
+    `;
     const params = [];
 
     if (status) {
-      query += ' AND handover_status = ?';
+      query += ' AND b.handover_status = ?';
       params.push(status);
     }
     if (collectorId) {
-      query += ' AND collector_id = ?';
+      query += ' AND b.collector_id = ?';
       params.push(collectorId);
     }
     if (recyclerId) {
-      query += ' AND recycler_id = ?';
+      query += ' AND b.recycler_id = ?';
       params.push(recyclerId);
     }
 
-    query += ' ORDER BY created_at DESC';
+    query += ' ORDER BY b.created_at DESC';
     const rows = db.prepare(query).all(...params);
     res.json({ success: true, count: rows.length, batches: rows });
   } catch (err) {
@@ -162,6 +247,8 @@ app.get('/api/batches/:id', (req, res) => {
   try {
     const batch = db.prepare(`
       SELECT b.*, c.full_name as collector_name, c.phone_number as collector_phone,
+             c.rating as collector_rating, c.incentive_tier as collector_tier,
+             c.successful_handovers as collector_handovers, c.incentive_points as collector_points,
              r.company_name as recycler_company, r.cpcb_registration_number
       FROM batches b
       LEFT JOIN collectors c ON b.collector_id = c.collector_id
@@ -258,6 +345,9 @@ app.post('/api/batches/:id/verify', (req, res) => {
       batchId
     );
 
+    // Award Collector verification bonus incentive
+    const incentiveResult = awardCollectorIncentive(batch.collector_id, batchId, 'RECYCLER_VERIFIED', verifiedWeight, 0.05, 30);
+
     res.json({
       success: true,
       message: 'Batch successfully verified and EPR credit created!',
@@ -266,6 +356,7 @@ app.post('/api/batches/:id/verify', (req, res) => {
       verificationHash,
       verifiedWeightKg: verifiedWeight,
       cpcbCategory: batch.cpcb_category_code,
+      incentive: incentiveResult,
       timestamp
     });
   } catch (err) {
@@ -311,6 +402,47 @@ app.get('/api/epr/metrics', (req, res) => {
       },
       categoryBreakdown: enrichedBreakdown
     });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 8. Collector Reputation, Ratings & Incentive Metrics
+app.get('/api/collectors', (req, res) => {
+  try {
+    const collectors = db.prepare(`
+      SELECT c.*,
+             COUNT(b.batch_id) as batch_count,
+             COALESCE(SUM(CASE WHEN b.handover_status IN ('HANDED_OVER', 'VERIFIED_BY_RECYCLER') THEN 1 ELSE 0 END), 0) as handovers_count
+      FROM collectors c
+      LEFT JOIN batches b ON c.collector_id = b.collector_id
+      GROUP BY c.collector_id
+      ORDER BY c.rating DESC, c.total_collected_kg DESC
+    `).all();
+
+    res.json({ success: true, count: collectors.length, collectors });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+app.get('/api/collectors/:id', (req, res) => {
+  try {
+    const collector = db.prepare('SELECT * FROM collectors WHERE collector_id = ?').get(req.params.id);
+    if (!collector) {
+      return res.status(404).json({ success: false, message: 'Collector not found' });
+    }
+    const incentives = db.prepare('SELECT * FROM collector_incentives WHERE collector_id = ? ORDER BY timestamp DESC').all(req.params.id);
+    res.json({ success: true, collector, incentives });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+app.get('/api/collectors/:id/incentives', (req, res) => {
+  try {
+    const rows = db.prepare('SELECT * FROM collector_incentives WHERE collector_id = ? ORDER BY timestamp DESC').all(req.params.id);
+    res.json({ success: true, count: rows.length, incentives: rows });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

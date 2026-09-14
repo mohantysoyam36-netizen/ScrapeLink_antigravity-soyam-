@@ -1,4 +1,4 @@
-﻿package com.ewaste.formalization.ui
+package com.ewaste.formalization.ui
 
 import android.content.Intent
 import android.os.Bundle
@@ -34,6 +34,11 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvTotalBatches: TextView
     private lateinit var rvRecentBatches: RecyclerView
     private lateinit var tvEmptyBatches: TextView
+    private lateinit var tvCollectorRatingHeader: TextView
+    private lateinit var tvCollectorRating: TextView
+    private lateinit var tvCollectorPoints: TextView
+    private lateinit var tvCollectorTierBadge: TextView
+    private lateinit var tvSuccessfulHandovers: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -63,6 +68,11 @@ class MainActivity : AppCompatActivity() {
         tvTotalBatches = findViewById(R.id.tvTotalBatches)
         rvRecentBatches = findViewById(R.id.rvRecentBatches)
         tvEmptyBatches = findViewById(R.id.tvEmptyBatches)
+        tvCollectorRatingHeader = findViewById(R.id.tvCollectorRatingHeader)
+        tvCollectorRating = findViewById(R.id.tvCollectorRating)
+        tvCollectorPoints = findViewById(R.id.tvCollectorPoints)
+        tvCollectorTierBadge = findViewById(R.id.tvCollectorTierBadge)
+        tvSuccessfulHandovers = findViewById(R.id.tvSuccessfulHandovers)
     }
 
     private fun setupRecyclerView() {
@@ -115,6 +125,18 @@ class MainActivity : AppCompatActivity() {
                 collector?.let {
                     tvCollectorName.text = it.fullName
                     tvCollectorId.text = "ID: ${it.collectorId} • ${it.operatingTerritory}"
+
+                    val formattedRating = String.format(java.util.Locale.US, "%.1f", it.rating)
+                    val tierHindi = when (it.incentiveTier.uppercase()) {
+                        "GOLD" -> "गोल्ड"
+                        "SILVER" -> "सिल्वर"
+                        else -> "ब्रॉन्ज़"
+                    }
+                    tvCollectorRatingHeader.text = "⭐ $formattedRating • $tierHindi कलेक्टर"
+                    tvCollectorRating.text = "⭐ $formattedRating / 5.0"
+                    tvCollectorPoints.text = "🎁 ${it.incentivePoints} Pts"
+                    tvCollectorTierBadge.text = it.incentiveTier.uppercase()
+                    tvSuccessfulHandovers.text = "सफल हैंडओवर: ${it.successfulHandovers} बार"
                 }
             }
         }

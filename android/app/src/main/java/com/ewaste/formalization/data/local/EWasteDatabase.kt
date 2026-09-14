@@ -1,4 +1,4 @@
-﻿package com.ewaste.formalization.data.local
+package com.ewaste.formalization.data.local
 
 import android.content.Context
 import androidx.room.Database
@@ -25,7 +25,7 @@ import kotlinx.coroutines.launch
         RecyclerEntity::class,
         HandoverEventEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
@@ -65,9 +65,27 @@ abstract class EWasteDatabase : RoomDatabase() {
                     seedInitialData(database)
                 }
             }
+
+            override fun onDestructiveMigration(db: SupportSQLiteDatabase) {
+                super.onDestructiveMigration(db)
+                CoroutineScope(Dispatchers.IO).launch {
+                    val database = getInstance(context)
+                    seedInitialData(database)
+                }
+            }
+
+            override fun onOpen(db: SupportSQLiteDatabase) {
+                super.onOpen(db)
+                CoroutineScope(Dispatchers.IO).launch {
+                    val database = getInstance(context)
+                    if (database.recyclerDao().getAllRecyclers().isEmpty()) {
+                        seedInitialData(database)
+                    }
+                }
+            }
         }
 
-        private suspend fun seedInitialData(database: EWasteDatabase) {
+        internal suspend fun seedInitialData(database: EWasteDatabase) {
             // Seed a default registered Kabadiwala identity
             val defaultCollector = CollectorEntity(
                 collectorId = "KAB-DL-2024-001",
@@ -76,7 +94,11 @@ abstract class EWasteDatabase : RoomDatabase() {
                 operatingTerritory = "Seelampur Ward 4, East Delhi",
                 isKycVerified = true,
                 totalCollectedKg = 0.0,
-                bankAccountOrUpiId = "ramesh.scrap@upi"
+                bankAccountOrUpiId = "ramesh.scrap@upi",
+                rating = 4.5,
+                successfulHandovers = 0,
+                incentivePoints = 150,
+                incentiveTier = "BRONZE"
             )
             database.collectorDao().insertCollector(defaultCollector)
 

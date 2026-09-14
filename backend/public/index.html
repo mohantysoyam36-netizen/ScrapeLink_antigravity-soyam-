@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -69,6 +69,7 @@
     <!-- Navigation Tabs -->
     <div class="tabs-nav">
       <button class="tab-btn active" onclick="switchTab('batchesTab')">📦 Incoming Batches (Supply Pipeline)</button>
+      <button class="tab-btn" onclick="switchTab('collectorsTab')">⭐ Collector Ratings &amp; Incentives</button>
       <button class="tab-btn" onclick="switchTab('eprTab')">📊 CPCB Schedule I EPR Metrics</button>
       <button class="tab-btn" onclick="switchTab('passportLookupTab')">🔍 Digital Passport Lookup</button>
     </div>
@@ -107,6 +108,38 @@
           </thead>
           <tbody id="batchesTableBody">
             <tr><td colspan="8" class="text-center">Loading batch records...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+ 
+    <!-- TAB: Collector Ratings & Incentives -->
+    <section id="collectorsTab" class="tab-content">
+      <div class="section-toolbar">
+        <div>
+          <h2>Formalized Kabadiwala Ratings &amp; Incentive Leaderboard</h2>
+          <p class="section-desc">Reputation rating scores, successful recycler handovers, and incentive points across registered collection agents.</p>
+        </div>
+        <div class="toolbar-actions">
+          <button class="btn btn-secondary" onclick="fetchCollectors()">🔄 Refresh</button>
+        </div>
+      </div>
+
+      <div class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Collector ID &amp; Name</th>
+              <th>Operating Territory</th>
+              <th>Reputation Rating</th>
+              <th>Successful Handovers</th>
+              <th>Total Collected Weight</th>
+              <th>Incentive Tier &amp; Points</th>
+              <th>Formal Incentive Status</th>
+            </tr>
+          </thead>
+          <tbody id="collectorsTableBody">
+            <tr><td colspan="7" class="text-center">Loading collector ratings...</td></tr>
           </tbody>
         </table>
       </div>

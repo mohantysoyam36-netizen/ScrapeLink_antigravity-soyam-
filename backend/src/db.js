@@ -1,4 +1,4 @@
-﻿const { DatabaseSync } = require('node:sqlite');
+const { DatabaseSync } = require('node:sqlite');
 const path = require('path');
 const fs = require('fs');
 
@@ -19,7 +19,23 @@ db.exec(`
     operating_territory TEXT,
     is_kyc_verified INTEGER DEFAULT 1,
     total_collected_kg REAL DEFAULT 0,
+    rating REAL DEFAULT 4.5,
+    successful_handovers INTEGER DEFAULT 0,
+    incentive_points INTEGER DEFAULT 0,
+    incentive_tier TEXT DEFAULT 'BRONZE',
     created_at INTEGER
+  );
+
+  CREATE TABLE IF NOT EXISTS collector_incentives (
+    incentive_id TEXT PRIMARY KEY,
+    collector_id TEXT NOT NULL,
+    batch_id TEXT,
+    event_type TEXT NOT NULL,
+    points_awarded INTEGER NOT NULL,
+    rating_increment REAL NOT NULL,
+    description TEXT,
+    timestamp INTEGER NOT NULL,
+    FOREIGN KEY(collector_id) REFERENCES collectors(collector_id)
   );
 
   CREATE TABLE IF NOT EXISTS recyclers (
@@ -71,20 +87,30 @@ db.exec(`
   );
 `);
 
+// Defensive migrations for existing databases
+try { db.exec('ALTER TABLE collectors ADD COLUMN rating REAL DEFAULT 4.5'); } catch (e) {}
+try { db.exec('ALTER TABLE collectors ADD COLUMN successful_handovers INTEGER DEFAULT 0'); } catch (e) {}
+try { db.exec('ALTER TABLE collectors ADD COLUMN incentive_points INTEGER DEFAULT 0'); } catch (e) {}
+try { db.exec("ALTER TABLE collectors ADD COLUMN incentive_tier TEXT DEFAULT 'BRONZE'"); } catch (e) {}
+
 // Seed Default Collectors and Recyclers if empty
 const collectorCountStmt = db.prepare('SELECT COUNT(*) as count FROM collectors');
 const { count: collectorCount } = collectorCountStmt.get();
 
 if (collectorCount === 0) {
   const insertCollector = db.prepare(`
-    INSERT INTO collectors (collector_id, full_name, phone_number, operating_territory, is_kyc_verified, total_collected_kg, created_at)
-    VALUES (?, ?, ?, ?, 1, 0, ?)
+    INSERT INTO collectors (collector_id, full_name, phone_number, operating_territory, is_kyc_verified, total_collected_kg, rating, successful_handovers, incentive_points, incentive_tier, created_at)
+    VALUES (?, ?, ?, ?, 1, 0, ?, ?, ?, ?, ?)
   `);
   insertCollector.run(
     'KAB-DL-2024-001',
     'Ramesh Kumar (रमेश कुमार)',
     '+91 98765 43210',
     'Seelampur Ward 4, East Delhi',
+    4.8,
+    6,
+    350,
+    'SILVER',
     Date.now()
   );
   insertCollector.run(
@@ -92,6 +118,10 @@ if (collectorCount === 0) {
     'Sunil Jadhav (सुनील जाधव)',
     '+91 91234 56789',
     'Dharavi Scrap Transit Sector 5, Mumbai',
+    4.6,
+    3,
+    180,
+    'BRONZE',
     Date.now()
   );
 }

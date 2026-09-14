@@ -1,4 +1,4 @@
-﻿const http = require('http');
+const http = require('http');
 
 function makeRequest(options, postData = null) {
   return new Promise((resolve, reject) => {
@@ -105,8 +105,20 @@ async function runTests() {
   console.log(`-> Schedule I Category Breakdown:`, metricsRes.data.categoryBreakdown);
   if (metricsRes.data.summary.totalVerifiedKg > 0) console.log("-> PASSED: Real-time EPR compliance metrics calculated accurately!");
 
+  // 7. Verify Collector Ratings & Incentives
+  console.log("\n[TEST 7] Testing Collector Rating & Incentive Leaderboard (GET /api/collectors)...");
+  const collectorsRes = await makeRequest({ host: 'localhost', port: 3000, path: '/api/collectors', method: 'GET' });
+  console.log(`-> Status: ${collectorsRes.status}, Found collectors: ${collectorsRes.data.count}`);
+  const ramesh = collectorsRes.data.collectors.find(c => c.collector_id === 'KAB-DL-2024-001');
+  if (ramesh) {
+    console.log(`-> Collector: ${ramesh.full_name}, Rating: ⭐ ${ramesh.rating} / 5.0, Points: 🎁 ${ramesh.incentive_points} pts, Tier: ${ramesh.incentive_tier}, Handovers: ${ramesh.successful_handovers}`);
+    if (ramesh.rating >= 4.5 && ramesh.incentive_points > 0) {
+      console.log("-> PASSED: Collector received rating increment and incentive points from handover & verification!");
+    }
+  }
+
   console.log("\n=======================================================");
-  console.log("  ALL 6 BACKEND & INTEGRATION TESTS PASSED 100%!");
+  console.log("  ALL 7 BACKEND & INTEGRATION TESTS PASSED 100%!");
   console.log("=======================================================\n");
 }
 

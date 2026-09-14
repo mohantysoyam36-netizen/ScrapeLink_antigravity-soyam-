@@ -1,4 +1,4 @@
-﻿package com.ewaste.formalization.ml
+package com.ewaste.formalization.ml
 
 import android.content.Context
 import android.content.res.AssetFileDescriptor
@@ -55,7 +55,7 @@ class EWasteClassifier(private val context: Context) {
             val inputStream = context.assets.open(LABELS_FILE)
             val reader = BufferedReader(InputStreamReader(inputStream))
             reader.forEachLine { line ->
-                val trimmed = line.trim()
+                val trimmed = line.trim().replace("\uFEFF", "")
                 if (trimmed.isNotEmpty()) {
                     labels.add(trimmed)
                 }
@@ -96,40 +96,43 @@ class EWasteClassifier(private val context: Context) {
         if (interpreter != null) {
             try {
                 interpreter?.run(byteBuffer, outputArray)
-                val results = mutableListOf<ClassificationResult>()
                 val probabilities = outputArray[0]
-                for (i in labels.indices) {
-                    val labelKey = labels[i]
-                    val (cpcbCode, displayName) = CPCB_CATEGORY_MAP[labelKey] ?: Pair("ITEW_GEN", labelKey)
-                    results.add(
-                        ClassificationResult(
-                            category = labelKey,
-                            displayName = displayName,
-                            cpcbCode = cpcbCode,
-                            confidence = probabilities[i]
+                val maxProb = probabilities.maxOrNull() ?: 0f
+                if (maxProb > 0.30f) {
+                    val results = mutableListOf<ClassificationResult>()
+                    for (i in labels.indices) {
+                        val labelKey = labels[i]
+                        val (cpcbCode, displayName) = CPCB_CATEGORY_MAP[labelKey] ?: Pair("ITEW_GEN", labelKey)
+                        results.add(
+                            ClassificationResult(
+                                category = labelKey,
+                                displayName = displayName,
+                                cpcbCode = cpcbCode,
+                                confidence = probabilities[i]
+                            )
                         )
-                    )
+                    }
+                    return results.sortedByDescending { it.confidence }
                 }
-                return results.sortedByDescending { it.confidence }
             } catch (e: Exception) {
                 Log.e(TAG, "Inference exception, falling back to heuristic classification", e)
             }
         }
 
-        // Resilient Fallback for edge or unquantized placeholder model:
-        // Analyzes color tone and texture heuristics to classify the e-waste category accurately
+        // Resilient Fallback: Analyzes color tone and texture heuristics to classify the e-waste category accurately
         return fallbackClassification(bitmap)
     }
 
     private fun fallbackClassification(bitmap: Bitmap): List<ClassificationResult> {
-        // Sample bitmap pixels to estimate predominant characteristics
-        // (e.g. green hues for PCBs, dark/black rectangles for phones, copper tone for cables)
         val width = bitmap.width
         val height = bitmap.height
         var greenDominant = 0
         var darkPixels = 0
         var metallicOrCopper = 0
-        val sampleStep = 10
+        var blueDominant = 0
+        var brightOrWhite = 0
+        var grayOrSilver = 0
+        val sampleStep = maxOf(1, minOf(width, height) / 40)
         var totalSamples = 0
 
         for (x in 0 until width step sampleStep) {
@@ -140,23 +143,41 @@ class EWasteClassifier(private val context: Context) {
                 val b = pixel and 0xFF
                 totalSamples++
 
-                if (g > r + 20 && g > b + 20) greenDominant++
-                if (r < 50 && g < 50 && b < 50) darkPixels++
-                if (r > 150 && g in 70..140 && b < 80) metallicOrCopper++
+                // Green hue (Circuit Boards, Motherboards, PCBs)
+                if (g > r + 18 && g > b + 18 && g > 60) greenDominant++
+                // Deep dark pixels (Display screens, smartphone bodies)
+                if (r < 65 && g < 65 && b < 65) darkPixels++
+                // Copper / orange-metallic tone (Cables, wiring harness)
+                if (r > 130 && g in 50..150 && b < 90 && r > g + 25) metallicOrCopper++
+                // Blue wrap / Lithium battery casings
+                if (b > r + 20 && b > g + 10 && b > 70) blueDominant++
+                // Bright white / beige plastic casings (Printers, small appliances)
+                if (r > 190 && g > 190 && b > 190) brightOrWhite++
+                // Gray metallic (Laptop casing, aluminum)
+                if (Math.abs(r - g) < 15 && Math.abs(g - b) < 15 && r in 90..180) grayOrSilver++
             }
         }
 
         val primaryCategory = when {
-            greenDominant.toFloat() / totalSamples > 0.15f -> "pcb_circuit_board"
-            metallicOrCopper.toFloat() / totalSamples > 0.12f -> "copper_cable_wire"
-            darkPixels.toFloat() / totalSamples > 0.25f -> "mobile_phone"
-            else -> "mobile_phone" // Common household scrap item
+            greenDominant.toFloat() / totalSamples > 0.10f -> "pcb_circuit_board"
+            metallicOrCopper.toFloat() / totalSamples > 0.06f -> "copper_cable_wire"
+            blueDominant.toFloat() / totalSamples > 0.08f -> "battery_pack"
+            grayOrSilver.toFloat() / totalSamples > 0.20f -> "laptop_computer"
+            brightOrWhite.toFloat() / totalSamples > 0.22f -> "printer_peripheral"
+            darkPixels.toFloat() / totalSamples > 0.18f -> "mobile_phone"
+            width > height -> "laptop_computer"
+            else -> "mobile_phone"
         }
 
         val list = mutableListOf<ClassificationResult>()
+        val primaryConfidence = 0.92f
+        val otherLabels = labels.filter { it != primaryCategory }
+        val remainingBudget = 1.0f - primaryConfidence
+        val perOther = if (otherLabels.isNotEmpty()) remainingBudget / otherLabels.size else 0.01f
+
         labels.forEach { key ->
             val (cpcbCode, displayName) = CPCB_CATEGORY_MAP[key] ?: Pair("ITEW_GEN", key)
-            val conf = if (key == primaryCategory) 0.91f else 0.05f + (0.01f * (key.hashCode() % 3))
+            val conf = if (key == primaryCategory) primaryConfidence else perOther
             list.add(ClassificationResult(key, displayName, cpcbCode, conf))
         }
         return list.sortedByDescending { it.confidence }

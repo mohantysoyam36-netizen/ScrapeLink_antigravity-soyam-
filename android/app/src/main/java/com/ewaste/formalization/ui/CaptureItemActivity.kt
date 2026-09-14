@@ -1,4 +1,4 @@
-﻿package com.ewaste.formalization.ui
+package com.ewaste.formalization.ui
 
 import android.app.Activity
 import android.content.Intent
@@ -58,12 +58,8 @@ class CaptureItemActivity : AppCompatActivity() {
     private var isManualOverride: Boolean = false
     private var savedImageFilePath: String? = null
 
-    private val cameraLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            val bitmap = result.data?.extras?.get("data") as? Bitmap
-                ?: result.data?.data?.let { uri -> decodeBitmapFromUri(uri) }
-                ?: createSimulatedEWasteBitmap("mobile_phone")
-
+    private val cameraLauncher = registerForActivityResult(ActivityResultContracts.TakePicturePreview()) { bitmap ->
+        if (bitmap != null) {
             handleCapturedPhoto(bitmap)
         }
     }
@@ -112,10 +108,10 @@ class CaptureItemActivity : AppCompatActivity() {
     }
 
     private fun launchCameraIntent() {
-        val takePictureIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
         try {
-            cameraLauncher.launch(takePictureIntent)
+            cameraLauncher.launch(null)
         } catch (e: Exception) {
+            e.printStackTrace()
             // If camera app not found in emulator, cycle simulated e-waste samples
             val sampleKeys = listOf("mobile_phone", "pcb_circuit_board", "battery_pack", "copper_cable_wire", "crt_lcd_monitor")
             val nextKey = sampleKeys[(sampleKeys.indexOf(selectedCategoryKey) + 1) % sampleKeys.size]
