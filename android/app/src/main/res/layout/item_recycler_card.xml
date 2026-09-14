@@ -1,0 +1,73 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/bg_card"
+    android:padding="14dp"
+    android:layout_marginBottom="10dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:background="#E3F2FD"
+            android:gravity="center"
+            android:text="🏭"
+            android:textSize="24sp" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="12dp"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tvRecyclerName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Eco-Greens Formal Hub"
+                android:textColor="@color/text_primary"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvRecyclerCpcb"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="CPCB/EW-REC/2023/DL-0081"
+                android:textColor="@color/primary"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <RadioButton
+            android:id="@+id/rbSelectRecycler"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:clickable="false" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/tvRecyclerAddress"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Plot 12, Okhla Industrial Area Phase III, New Delhi"
+        android:textColor="@color/text_secondary"
+        android:textSize="12sp"
+        android:layout_marginTop="6dp" />
+
+    <TextView
+        android:id="@+id/tvRecyclerCategories"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Authorized: ITEW15, CEEW1, PCB, Batteries"
+        android:textColor="@color/cpcb_blue"
+        android:textSize="11sp"
+        android:layout_marginTop="2dp" />
+</LinearLayout>

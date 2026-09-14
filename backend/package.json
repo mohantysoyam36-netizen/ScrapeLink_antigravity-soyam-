@@ -1,0 +1,13 @@
+﻿{
+  "name": "ewaste-formalization-backend",
+  "version": "1.0.0",
+  "description": "Digital Formalization Network for E-Waste Collection - CPCB EPR API & Recycler Dashboard",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2"
+  }
+}

@@ -1,0 +1,390 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background">
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <!-- Title Header -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="12dp">
+
+                <ImageButton
+                    android:id="@+id/btnBack"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:src="@android:drawable/ic_menu_revert" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="8dp"
+                    android:text="@string/capture_title"
+                    android:textColor="@color/text_primary"
+                    android:textSize="20sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <!-- Photo Capture / Preview Box -->
+            <FrameLayout
+                android:id="@+id/layoutPhotoBox"
+                android:layout_width="match_parent"
+                android:layout_height="220dp"
+                android:background="@drawable/bg_card"
+                android:layout_marginBottom="16dp">
+
+                <ImageView
+                    android:id="@+id/ivCapturedPhoto"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:scaleType="centerCrop" />
+
+                <!-- Placeholder prompt before photo is taken -->
+                <LinearLayout
+                    android:id="@+id/layoutCameraPrompt"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="📷"
+                        android:textSize="50sp" />
+
+                    <Button
+                        android:id="@+id/btnCapturePhoto"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="फोटो खींचें (Take Photo)"
+                        android:backgroundTint="@color/primary" />
+                </LinearLayout>
+
+                <Button
+                    android:id="@+id/btnRetakePhoto"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="bottom|end"
+                    android:layout_margin="12dp"
+                    android:text="🔄 दोबारा लें"
+                    android:textSize="12sp"
+                    android:backgroundTint="#80000000"
+                    android:visibility="gone" />
+            </FrameLayout>
+
+            <!-- AI Classification Result Card -->
+            <LinearLayout
+                android:id="@+id/cardAiResult"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_card_action_green"
+                android:padding="14dp"
+                android:orientation="vertical"
+                android:layout_marginBottom="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🤖 On-Device AI Classification (MobileNetV2):"
+                    android:textColor="@color/primary_dark"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginTop="6dp">
+
+                    <TextView
+                        android:id="@+id/tvAiIcon"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="📱"
+                        android:textSize="32sp" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="10dp"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/tvAiCategoryName"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Mobile Phones (मोबाइल फोन)"
+                            android:textColor="@color/text_primary"
+                            android:textSize="17sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvAiCpcbCode"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="CPCB Schedule I: ITEW15"
+                            android:textColor="@color/primary"
+                            android:textSize="13sp" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:id="@+id/tvAiConfidence"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="94% विशवास"
+                        android:paddingHorizontal="8dp"
+                        android:paddingVertical="4dp"
+                        android:background="#C8E6C9"
+                        android:textColor="@color/primary_dark"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/tvManualOverrideIndicator"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="⚠️ मैन्युअल रूप से बदला गया (Manually Overridden)"
+                    android:textColor="#C62828"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:visibility="gone"
+                    android:layout_marginTop="4dp" />
+            </LinearLayout>
+
+            <!-- Manual Category Override Buttons (Visual Icons) -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/manual_override_prompt"
+                android:textColor="@color/text_primary"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="8dp" />
+
+            <!-- 2x4 Grid of Visual Categories -->
+            <GridLayout
+                android:id="@+id/gridCategories"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:columnCount="2"
+                android:rowCount="4"
+                android:alignmentMode="alignMargins"
+                android:layout_marginBottom="16dp">
+
+                <Button
+                    android:id="@+id/btnCatPhone"
+                    android:layout_width="0dp"
+                    android:layout_height="52dp"
+                    android:layout_columnWeight="1"
+                    android:layout_margin="4dp"
+                    android:text="📱 Phone (ITEW15)"
+                    android:textSize="12sp"
+                    android:backgroundTint="@color/surface"
+                    android:textColor="@color/text_primary" />
+
+                <Button
+                    android:id="@+id/btnCatLaptop"
+                    android:layout_width="0dp"
+                    android:layout_height="52dp"
+                    android:layout_columnWeight="1"
+                    android:layout_margin="4dp"
+                    android:text="💻 Laptop (ITEW3)"
+                    android:textSize="12sp"
+                    android:backgroundTint="@color/surface"
+                    android:textColor="@color/text_primary" />
+
+                <Button
+                    android:id="@+id/btnCatPcb"
+                    android:layout_width="0dp"
+                    android:layout_height="52dp"
+                    android:layout_columnWeight="1"
+                    android:layout_margin="4dp"
+                    android:text="🧩 PCB Board"
+                    android:textSize="12sp"
+                    android:backgroundTint="@color/surface"
+                    android:textColor="@color/text_primary" />
+
+                <Button
+                    android:id="@+id/btnCatMonitor"
+                    android:layout_width="0dp"
+                    android:layout_height="52dp"
+                    android:layout_columnWeight="1"
+                    android:layout_margin="4dp"
+                    android:text="🖥️ TV/Monitor"
+                    android:textSize="12sp"
+                    android:backgroundTint="@color/surface"
+                    android:textColor="@color/text_primary" />
+
+                <Button
+                    android:id="@+id/btnCatBattery"
+                    android:layout_width="0dp"
+                    android:layout_height="52dp"
+                    android:layout_columnWeight="1"
+                    android:layout_margin="4dp"
+                    android:text="🔋 Battery"
+                    android:textSize="12sp"
+                    android:backgroundTint="@color/surface"
+                    android:textColor="@color/text_primary" />
+
+                <Button
+                    android:id="@+id/btnCatCable"
+                    android:layout_width="0dp"
+                    android:layout_height="52dp"
+                    android:layout_columnWeight="1"
+                    android:layout_margin="4dp"
+                    android:text="🔌 Cable Wire"
+                    android:textSize="12sp"
+                    android:backgroundTint="@color/surface"
+                    android:textColor="@color/text_primary" />
+
+                <Button
+                    android:id="@+id/btnCatPrinter"
+                    android:layout_width="0dp"
+                    android:layout_height="52dp"
+                    android:layout_columnWeight="1"
+                    android:layout_margin="4dp"
+                    android:text="🖨️ Printer (ITEW4)"
+                    android:textSize="12sp"
+                    android:backgroundTint="@color/surface"
+                    android:textColor="@color/text_primary" />
+
+                <Button
+                    android:id="@+id/btnCatAppliance"
+                    android:layout_width="0dp"
+                    android:layout_height="52dp"
+                    android:layout_columnWeight="1"
+                    android:layout_margin="4dp"
+                    android:text="⚡ Appliance"
+                    android:textSize="12sp"
+                    android:backgroundTint="@color/surface"
+                    android:textColor="@color/text_primary" />
+            </GridLayout>
+
+            <!-- Weight Selection Section -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/weight_title"
+                android:textColor="@color/text_primary"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="8dp" />
+
+            <!-- Weight Preset Buttons -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="10dp">
+
+                <Button
+                    android:id="@+id/btnWeight1kg"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:text="1 Kg"
+                    android:layout_marginEnd="4dp"
+                    android:backgroundTint="@color/surface"
+                    android:textColor="@color/text_primary" />
+
+                <Button
+                    android:id="@+id/btnWeight5kg"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:text="5 Kg"
+                    android:layout_marginHorizontal="4dp"
+                    android:backgroundTint="@color/primary_light"
+                    android:textColor="@color/primary_dark" />
+
+                <Button
+                    android:id="@+id/btnWeight10kg"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:text="10 Kg"
+                    android:layout_marginHorizontal="4dp"
+                    android:backgroundTint="@color/surface"
+                    android:textColor="@color/text_primary" />
+
+                <Button
+                    android:id="@+id/btnWeight25kg"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:text="25 Kg"
+                    android:layout_marginStart="4dp"
+                    android:backgroundTint="@color/surface"
+                    android:textColor="@color/text_primary" />
+            </LinearLayout>
+
+            <!-- Custom Weight & Unit Count Row -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginBottom="20dp">
+
+                <EditText
+                    android:id="@+id/etWeightKg"
+                    android:layout_width="0dp"
+                    android:layout_height="54dp"
+                    android:layout_weight="1"
+                    android:hint="वजन (Kg लिखें)"
+                    android:inputType="numberDecimal"
+                    android:background="@drawable/bg_card"
+                    android:paddingHorizontal="14dp"
+                    android:textSize="16sp"
+                    android:text="5.0"
+                    android:layout_marginEnd="8dp" />
+
+                <EditText
+                    android:id="@+id/etItemCount"
+                    android:layout_width="0dp"
+                    android:layout_height="54dp"
+                    android:layout_weight="1"
+                    android:hint="संख्या (Units)"
+                    android:inputType="number"
+                    android:background="@drawable/bg_card"
+                    android:paddingHorizontal="14dp"
+                    android:textSize="16sp"
+                    android:text="1"
+                    android:layout_marginStart="8dp" />
+            </LinearLayout>
+
+            <!-- Save Digital Material Passport Button -->
+            <Button
+                android:id="@+id/btnSavePassport"
+                android:layout_width="match_parent"
+                android:layout_height="64dp"
+                android:text="💾 @string/save_passport"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:backgroundTint="@color/primary"
+                android:textColor="#FFFFFF" />
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

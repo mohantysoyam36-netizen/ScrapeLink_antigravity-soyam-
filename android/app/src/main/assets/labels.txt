@@ -1,0 +1,8 @@
+﻿mobile_phone
+laptop_computer
+pcb_circuit_board
+crt_lcd_monitor
+battery_pack
+copper_cable_wire
+printer_peripheral
+household_appliance_small

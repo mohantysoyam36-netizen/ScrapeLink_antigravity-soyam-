@@ -1,0 +1,20 @@
+﻿<resources>
+    <string name="app_name">E-Waste Formalize (ई-कचरा पासपोर्ट)</string>
+    <string name="cpcb_title">Digital Material Passport (CPCB EPR Network)</string>
+    <string name="collector_title">Ramesh Kumar (कबाड़ीवाला साथी)</string>
+    <string name="collector_id_label">ID: KAB-DL-2024-001 • Seelampur</string>
+    <string name="btn_scan_item">नया माल स्कैन करें (New Item Scan)</string>
+    <string name="btn_handover">रीसाइक्लर को बेचें (Handover to Recycler)</string>
+    <string name="btn_sync_now">सिंक करें (Sync Now)</string>
+    <string name="sync_all_safe">सब सुरक्षित है (All Synced to Cloud)</string>
+    <string name="sync_offline_pending">%d आइटम फोन में सुरक्षित हैं (Offline Saved)</string>
+    <string name="recent_batches_title">हाल का माल (Recent Collections)</string>
+    <string name="capture_title">माल की फोटो लें (Capture E-Waste)</string>
+    <string name="ai_detected_title">AI द्वारा पहचाना गया (Detected Category)</string>
+    <string name="manual_override_prompt">गलत है? यहाँ से सही चुनें (Tap to change category):</string>
+    <string name="weight_title">वजन चुनें या लिखें (Weight in Kg):</string>
+    <string name="save_passport">पासपोर्ट सेव करें (Save Digital Passport)</string>
+    <string name="handover_title">अधिकृत रीसाइक्लर चुनें (Authorized Recycler)</string>
+    <string name="confirm_handover_btn">रीसाइक्लर को माल सौंपें (Confirm Handover)</string>
+    <string name="passport_qr_title">रीसाइक्लर सत्यापन QR (Passport QR Code)</string>
+</resources>
